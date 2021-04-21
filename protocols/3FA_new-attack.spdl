@@ -1,0 +1,144 @@
+usertype nat;
+usertype identity;
+usertype password;
+usertype bio;
+usertype ServerSecretKey;
+hashfunction Hbio,h,xor;
+//set 7 runs
+protocol @SmartCardLost(Attacker)
+{
+    role Attacker
+    {
+        var IDu,IDs:identity;
+        var PW:password;
+        var B:bio;
+        var r1,r2:nat;
+        var s:ServerSecretKey;
+        var User,Server:Agent;
+
+        recv_!1(Attacker,Attacker,{h(IDu,PW,Hbio(B)),xor(B,r1)}k(User,Server));
+        macro c1=h(IDu,PW,Hbio(B));
+        macro c2=xor(B,r1);
+
+        recv_!2(Attacker,Attacker,{IDs,xor(h(IDs,c1,h(Hbio(c2),s)),r2),xor(h(Hbio(c2),s),c1)}k(User,Server));
+
+        macro M=h(Hbio(c2),s);
+
+        macro X=xor(h(IDs,c1,M),r2);
+        macro Y=xor(M,c1);
+        macro Z=xor(r1,Hbio(B));
+
+        macro SmartCard=IDs,X,Y,Z;
+        send_!3(Attacker,Attacker,SmartCard,B);
+    }
+}
+protocol @xorOperate(A,B)
+{
+    role A
+    {
+        var a:Ticket;
+        var b:Ticket;
+        recv_!1(A,A,xor(a,b),b);
+        send_!2(A,A,a);
+    }
+    role B
+    { 
+        var a:Ticket;
+        var b:Ticket;
+        recv_!3(B,B,xor(a,b));
+        send_!4(B,B,xor(b,a));
+    }
+}
+protocol @OfflinePasswordGuess(A)
+{
+    role A
+    {
+        var IDu:identity;
+        var PW:password;
+        var B:bio;
+        var r1,r3:nat;
+        var s:ServerSecretKey;
+        macro c1=h(IDu,PW,Hbio(B));
+
+        macro c4=xor(B,r1,h(M,r3));
+
+        macro M=h(Hbio(xor(B,r1)),s);
+        macro Y=xor(M,c1);
+        recv_!1(A,A,B,r1,r3);
+        recv_!2(A,A,Y);
+        recv_!3(A,A,c4 );
+        recv_!4(A,A,xor(M,c1));
+        send_!5(A,A,PW,IDu);
+    }
+}
+
+
+protocol ThreeFactorAgreement(User,Server)
+{
+    role User
+    {
+        fresh r1,r3:nat;
+        const IDu:identity;
+        const PW:password;
+        const B:bio;
+        var s:ServerSecretKey;
+        var IDs:identity;
+        var r2,r4:nat;
+
+        macro c1=h(IDu,PW,Hbio(B));
+        macro c2=xor(B,r1);
+
+        send_1(User,Server,{c1,c2}k(User,Server));
+
+        recv_2(Server,User,{
+                IDs,
+                xor(h(IDs,c1,h(Hbio(c2),s)),r2),
+                xor(h(Hbio(c2),s),c1)
+            }k(User,Server));
+
+        macro M=h(Hbio(c2),s);
+        macro Z=xor(r1,Hbio(B));
+
+        macro c3=Hbio(xor(B,r1,r2));
+        macro c4=xor(B,r1,h(M,r3));
+        macro c5=xor(r3,Hbio(xor(B,r1)));
+
+        send_3(User,Server,c3,c4,c5);
+
+  
+        claim(User,Secret,r3);
+        claim(User,Secret,PW);
+    }
+    role Server
+    {
+        const IDs:identity;
+        fresh r2,r4:nat;
+        var r1,r3:nat;
+        var IDu:identity;
+        var PW:password;
+        var B:bio;
+
+        const s:ServerSecretKey;
+
+        recv_1(User,Server,{
+            h(IDu,PW,Hbio(B)),
+            xor(B,r1)
+            }k(User,Server));
+
+        macro c1=h(IDu,PW,Hbio(B));
+        macro c2=xor(B,r1);
+
+        macro M=h(Hbio(c2),s);
+        macro X=xor(h(IDs,c1,M),r2);
+        macro Y=xor(M,c1);
+
+        send_2(Server,User,{IDs,X,Y}k(User,Server));
+
+        recv_3(User,Server,
+            Hbio(xor(B,r1,r2)),
+            xor(B,r1,h(M,r3)),
+            xor(r3,Hbio(xor(B,r1))));
+
+
+    }
+}
