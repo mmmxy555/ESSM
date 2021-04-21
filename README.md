@@ -13,7 +13,7 @@ Protocol Models
 
 The protocol models have the extension `.spdl` and can be found in the following directories:
 
-  ./protocols
+  * [./Protocols](Protocols)
   
 Usage
 -----
