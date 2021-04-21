@@ -1,0 +1,79 @@
+usertype shared-key;
+hashfunction xor,mul,H;
+
+protocol @xor-operate(X,Y)
+{
+    role X
+    {
+        var a,b:Ticket;
+        recv_!1(X,X,xor(mul(a),b),mul(a));
+        send_!2(X,X,b);
+    }
+    role Y
+    {
+        var a,b:Ticket;
+        recv_!3(Y,Y,xor(mul(a),b),b);
+        send_!4(Y,Y,mul(a));
+    }
+}
+protocol @mul-operate(X,Y)
+{
+    role X
+    {
+        var a,b:Ticket;
+        recv_!1(X,X,mul(a,b),a);
+        send_!2(X,X,b);
+    }
+    role Y
+    {
+        var a,b:Ticket;
+        recv_!3(Y,Y,mul(a,b),b);
+        send_!4(Y,Y,a);
+    }
+}
+protocol @pk-encryption(X)
+{
+    role X
+    {
+        var S:Agent;
+        var r1,r-intruder:Nonce;
+
+        recv_!1(X,X,{r1}pk(S),r-intruder);
+        send_!2(X,X,{mul(r1,r-intruder)}pk(S));
+    }
+}
+protocol MTI(A,B,S)
+{
+    
+    role A
+    {
+        fresh r1:Nonce;
+        var   r2:shared-key;
+        
+        send_1(A,S,B,{r1}pk(S));
+        recv_4(S,A,B,xor(r1,r2));
+        send_5(A,B,{r1}k(A,B));
+        recv_6(B,A,{r2,r1}k(A,B));
+        claim(A,Secret,r1);
+        claim(A,Secret,r2);
+    }
+    
+    role B
+    {
+        var r1:Nonce;
+        fresh r2:shared-key;
+        recv_2(S,B,A);
+        send_3(B,S,A,{r2}pk(S));
+        recv_5(A,B,{r1}k(A,B));
+        send_6(B,A,{r2,r1}k(A,B));
+    }
+    role S
+    {
+        var r1:Ticket;
+        var r2:shared-key;
+        recv_1(A,S,B,{r1}pk(S));
+        send_2(S,B,A);
+        recv_3(B,S,A,{r2}pk(S));
+        send_4(S,A,B,xor(r1,r2));
+    }
+}

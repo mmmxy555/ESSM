@@ -1,0 +1,82 @@
+usertype nat;
+hashfunction exp,H,mul;
+const g:nat;
+const w:nat;
+protocol @small-Subgroup-attack(X,Y)
+{
+    role X
+    {
+        var x,y,m:nat;
+        recv_!1(X,X,exp(exp(g,m),mul(x,y)));
+        send_!2(X,X,exp(exp(g,m),mul(x,y,w)));
+        send_!3(X,X,mul(x,y));
+    }
+   
+}
+protocol @exp-function(Y)
+{
+   
+    role Y
+    {
+        var a,b,c,d:nat;
+        recv_!1(Y,Y,exp(g,mul(a,b,c,d,w)));
+        send_!2(Y,Y,exp(exp(exp(g,a),mul(c,d,w)),b));
+
+    }
+
+}
+protocol @mul-function(X)
+{
+    role X
+    {
+        var a,b,c,d:nat;
+        recv_!1(X,X,mul(a,b));
+        recv_!2(X,X,mul(c,d));
+
+        send_!3(X,X,mul(a,b,c,d,w));
+    }
+}
+
+
+protocol MTI(A,B)
+
+{
+    
+    role A
+    {
+        fresh ra:nat;
+        const xa:nat;
+        var xb:nat;
+        var rb:Ticket;
+
+        send_1(A,B,exp(g,xa));
+        recv_2(B,A,exp(g,xb));
+        not match(xa,xb);
+        macro yb=exp(g,xb);
+        macro ya=exp(g,xa);
+        send_3(A,B,exp(yb,mul(xa,ra)));
+        recv_4(B,A,exp(ya,mul(xb,rb)));
+        not match(ra,rb);
+        macro Zab=exp(exp(ya,mul(xb,rb)),ra);
+        claim(A,Secret,Zab);
+    }
+    
+    role B
+    {
+        var ra:Ticket;
+        const xb:nat;
+        fresh rb:nat;
+        var xa:nat;
+
+        recv_1(A,B,exp(g,xa));
+        send_2(B,A,exp(g,xb));
+        not match(xa,xb);
+        macro ya=exp(g,xa);
+        macro yb=exp(g,xb);
+        recv_3(A,B,exp(yb,mul(xa,ra)));
+        send_4(B,A,exp(ya,mul(xb,rb)));
+        not match(ra,rb);
+        macro Zab=exp(exp(yb,mul(xa,ra)),rb);
+        claim(B,Secret,Zab);
+    }
+}

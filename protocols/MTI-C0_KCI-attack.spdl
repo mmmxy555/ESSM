@@ -1,0 +1,65 @@
+usertype nat,secret-nat,secret-nat-compromise;
+hashfunction inv,exp,mul;
+const g,KCIitem:nat;
+protocol @KCI(X,Y)
+{
+    role X
+    {
+        var xa:secret-nat-compromise;
+        recv_!1(X,X,exp(g,xa));
+        send_!2(X,X,xa);
+    }
+    role Y
+    {
+        var xb:secret-nat;
+        var xa:secret-nat-compromise;
+        var rc,ra:nat;
+        recv_!3(Y,Y,xa,rc);
+        recv_!4(Y,Y,exp(exp(g,xb),ra));
+        macro KCIitem=exp(exp(g,xb),mul(xa,rc));
+        send_!5(Y,Y,exp(exp(KCIitem,inv(xa)),ra));
+        
+    }
+}
+protocol MTI(A,B)
+{
+    
+    role A
+    {
+        fresh ra:nat;
+        const xa:secret-nat-compromise;
+        var xb:secret-nat;
+        var zb:Ticket;
+
+        send_1(A,B,exp(g,xa));
+        recv_2(B,A,exp(g,xb));
+        not match(xa,xb);
+        macro yb=exp(g,xb);
+        macro ya=exp(g,xa);
+        send_3(A,B,exp(yb,ra));
+        recv_4(B,A,zb);
+
+        macro Zab=exp(exp(zb,inv(xa)),ra);
+        claim(A,Secret,Zab);
+    }
+    
+    role B
+    {
+        var ra:nat;
+        const xb:secret-nat;
+        fresh rb:nat;
+        var xa:secret-nat-compromise;
+
+        recv_1(A,B,exp(g,xa));
+        send_2(B,A,exp(g,xb));
+        not match(xa,xb);
+        macro ya=exp(g,xa);
+        macro yb=exp(g,xb);
+        recv_3(A,B,exp(yb,ra));
+        send_4(B,A,exp(ya,rb));
+        not match(ra,rb);
+        macro za=exp(yb,ra);
+        macro Zab=exp(exp(za,inv(xb)),rb);
+        claim(B,Secret,Zab);
+    }
+}

@@ -1,0 +1,58 @@
+usertype nat,long-term-key;
+hashfunction inv,exp,add,mul;
+const g:nat;
+
+protocol @Just-Vaudency-attack(Y)
+{
+
+    role Y
+    {
+        var rb,ra:nat;
+        var xa:long-term-key;
+        recv_!2(Y,Y,exp(g,ra));
+        recv_!3(Y,Y,exp(exp(g,xa),rb)); 
+       
+        send_!4(Y,Y,mul(exp(mul(inv(exp(g,ra)),exp(g,rb)),xa),exp(exp(g,xa),ra)));
+    }
+   
+}
+protocol MTI-A0(A,B)
+{
+    role A
+    {
+        fresh ra:nat;
+        const xa:long-term-key;
+        var xb:long-term-key;
+        var T2:Ticket;
+
+        send_1(A,B,exp(g,xa));
+        recv_2(B,A,exp(g,xb));
+
+        macro yb=exp(g,xb);
+        macro ya=exp(g,xa);
+        send_3(A,B,exp(g,ra));
+        recv_4(B,A,T2);
+        not match(T2,g);
+        macro Zab=mul(exp(T2,xa),exp(exp(g,xb),ra));
+        claim(A,Secret,Zab);
+    }
+    role B
+    {
+
+        const xb:long-term-key;
+        fresh rb:nat;
+        var xa:long-term-key;
+        var ra:nat;
+
+        recv_1(A,B,exp(g,xa));
+        send_2(B,A,exp(g,xb));
+
+        macro ya=exp(g,xa);
+        macro yb=exp(g,xb);
+        recv_3(A,B,exp(g,ra));
+
+        send_4(B,A,exp(g,rb));
+        macro Zab=mul(exp(exp(g,ra),xb),exp(exp(g,xa),rb));
+        claim(B,Secret,Zab);
+    }
+}

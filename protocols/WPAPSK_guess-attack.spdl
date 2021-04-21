@@ -1,0 +1,58 @@
+usertype MacAdress,ID,sharedkey;
+hashfunction PBKDF2,PRFx,HMACMD5;
+
+
+protocol @hashcrack(X)
+{
+    role X
+    {
+        var SSID,password,APMAC,STAMAC,SNonce,ANonce,Data:Ticket;
+        recv_!1(X,X,HMACMD5(PRFx(PBKDF2(SSID,password),APMAC,STAMAC,SNonce,ANonce),Data));
+        recv_!2(X,X,SSID,APMAC,STAMAC,SNonce,ANonce,Data);
+        send_!3(X,X,password);
+    }
+}
+
+protocol WPAPSK(AP,STA)
+{
+    
+    role AP
+    {
+        const password:sharedkey;
+        const SSID:ID;
+        const APMAC:MacAdress;
+        var SNonce:Nonce;
+        var STAMAC:MacAdress;
+        fresh ANonce:Nonce;
+        var Data:Nonce;
+        macro PMK=PBKDF2(SSID,password);
+        send_1(AP,STA,{password}k(AP,STA));
+        send_2(AP,STA,SSID,APMAC );
+        recv_3(STA,AP,SNonce,STAMAC);
+        macro PTK=PRFx(PMK,APMAC,STAMAC,SNonce,ANonce);
+        send_4(AP,STA,ANonce);
+        recv_5(STA,AP,Data,HMACMD5(PTK,Data));
+        claim(AP,Secret,password);
+
+    }
+    
+    role STA
+    {
+        var password:sharedkey;
+        var SSID: ID;
+        var APMAC:MacAdress;
+        var ANonce:Nonce;
+        const STAMAC:MacAdress;
+        fresh SNonce:Nonce;
+        fresh Data:Nonce;
+        recv_1(AP,STA,{password}k(AP,STA));
+        recv_2(AP,STA,SSID,APMAC );
+        macro PMK=PBKDF2(SSID,password);
+        send_3(STA,AP,SNonce,STAMAC);
+        recv_4(AP,STA,ANonce);
+        macro PTK=PRFx(PMK,APMAC,STAMAC,SNonce,ANonce);
+        send_5(STA,AP,Data,HMACMD5(PTK,Data));
+        claim(STA,Secret,password);
+
+    }
+}
